@@ -1,7 +1,8 @@
 import random
+import pickle
 
 class Player:
-    def __init__(self, name, cls):
+    def __init__(self, name, cls,gold=100):
         self.name = name
         self.cls = cls
         self.health = 100
@@ -11,6 +12,7 @@ class Player:
         self.intellect = 10
         self.level = 1
         self.xp = 0
+        self.gold = gold
 
     def attack(self, enemy):
         damage = random.randint(0, self.strength*2) * self.level
@@ -34,18 +36,87 @@ class Enemy:
         self.health = random.randint(50, 150)
         self.strength = random.randint(5, 20)
 
+def shop(player):
+    print("\n🛒 Добро пожаловать в магазин!")
+    items = {
+        "1": {"name": "Зелье здоровья", "price": 10, "effect": "health +20"},
+        "2": {"name": "Зелье маны", "price": 15, "effect": "mana +15"},
+        "3": {"name": "Улучшение меча", "price": 50, "effect": "strength +5"}
+    }
+
+
+    while True:
+        print(f"\n💰 Ваше золото: {player.gold}")
+        print("Товары:")
+        for key, item in items.items():
+            print(f"{key}. {item['name']} - {item['price']} золота")
+        print("4. Выход")
+
+        choice = input("Выбор: ")
+        if choice == "4":
+            break
+
+        item = items.get(choice)
+        if item:
+            if player.gold >= item['price']:
+                player.gold -= item['price']
+                apply_effect(player, item['effect'])
+                print(f"Куплено: {item['name']}!")
+            else:
+                print("Недостаточно золота!")
+        else:
+            print("Неверный выбор")
+
+
+def apply_effect(player, effect):
+    if "health" in effect:
+        player.health += int(effect.split('+')[-1])
+    elif "mana" in effect:
+        player.mana += int(effect.split('+')[-1])
+    elif "strength" in effect:
+        player.strength += int(effect.split('+')[-1])
+        
+def save_game(player):
+    try:
+        with open('savegame.dat', 'wb') as f:
+            pickle.dump(player, f)
+        print("✅ Игра сохранена!")
+    except Exception as e:
+        print(f"Ошибка сохранения: {e}")
+        
+def load_game():
+    try:
+        with open('savegame.dat', 'rb') as f:
+            return pickle.load(f)
+    except:
+        return None
+        
 def game_loop():
     print("Добро пожаловать в Легенду о Священном Мече!")
-    name = input("Введите имя персонажа: ")
-    cls = input("Выберите класс (воин/маг/вор): ").lower()
+    
+        # Проверка сохранения
+    saved_player = load_game()
+    if saved_player:
+        print("Найдено сохранение:")
+        print(f"Имя: {saved_player.name}, Уровень: {saved_player.level}")
+        load_choice = input("Загрузить? (да/нет): ").lower()
+        if load_choice == "да":
+            player = saved_player
+            print("Сохранение загружено!")
+         
+        else:
+            print("Начинаем новую игру")
+    
+            name = input("Введите имя персонажа: ")
+            cls = input("Выберите класс (воин/маг/вор): ").lower()
 
-    player = Player(name, cls)
-    if cls == "воин":
-        player.strength = 15
-    elif cls == "маг":
-        player.intellect = 15
-    elif cls == "вор":
-        player.agility = 15
+            player = Player(name, cls)
+            if cls == "воин":
+                player.strength = 15
+            elif cls == "маг":
+                player.intellect = 15
+            elif cls == "вор":
+                player.agility = 15
 
     while True:
         print("\n🌟 Меню:")
@@ -85,7 +156,8 @@ def battle(player, enemy):
             if enemy.health <= 0:
                 xp = random.randint(20, 50)
                 player.xp += xp
-                print(f"\n🎉 Враг побеждён! Получено XP: {xp}")
+                print(f"\n🎉 Враг побеждён! Получено XP: {xp}. Получено Монет: 25")
+                player.gold += 25
                 if player.xp >= (player.level * 100):
                     level_up(player)
                 break
